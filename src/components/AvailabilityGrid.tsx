@@ -53,8 +53,8 @@ export default function AvailabilityGrid({
                     onClick={() => toggle(day, block)}
                     className={`h-10 w-full rounded-lg border transition ${
                       has(day, block)
-                        ? "border-coral bg-coral text-white"
-                        : "border-ink/10 bg-white hover:border-coral/40"
+                        ? "border-tan bg-tan text-white"
+                        : "border-ink/10 bg-white hover:border-tan/40"
                     }`}
                   >
                     {has(day, block) ? "✓" : ""}

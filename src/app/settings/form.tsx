@@ -49,7 +49,7 @@ export default function SettingsForm({
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-8">
-      <section className="rounded-3xl bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-cream bg-white p-6 shadow-sm">
         <h2 className="font-semibold">Profile</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
@@ -88,7 +88,7 @@ export default function SettingsForm({
                   type="button"
                   onClick={() => setBudget(i + 1)}
                   className={`flex-1 rounded-xl border px-2 py-2 font-medium ${
-                    budget === i + 1 ? "border-coral bg-coral text-white" : "border-ink/10"
+                    budget === i + 1 ? "border-tan bg-tan text-white" : "border-ink/10"
                   }`}
                 >
                   {label}
@@ -99,7 +99,7 @@ export default function SettingsForm({
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-cream bg-white p-6 shadow-sm">
         <h2 className="font-semibold">Match preferences</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
@@ -143,7 +143,7 @@ export default function SettingsForm({
               max={50}
               value={distance}
               onChange={(e) => setDistance(Number(e.target.value))}
-              className="mt-2 w-full accent-coral"
+              className="mt-2 w-full accent-tan"
             />
           </label>
           <label className="text-sm">
@@ -161,7 +161,7 @@ export default function SettingsForm({
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-cream bg-white p-6 shadow-sm">
         <h2 className="font-semibold">Weekly availability</h2>
         <div className="mt-4">
           <AvailabilityGrid value={availability} onChange={setAvailability} />
@@ -172,12 +172,12 @@ export default function SettingsForm({
         <button
           type="submit"
           disabled={saving}
-          className="rounded-full bg-coral px-8 py-3 font-semibold text-white hover:bg-coral-dark disabled:opacity-60"
+          className="rounded-full bg-tan px-8 py-3 font-semibold text-white hover:bg-tan-dark disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
         {status && (
-          <span className={`text-sm ${status === "Saved ✓" ? "text-sage" : "text-coral-dark"}`}>
+          <span className={`text-sm ${status === "Saved ✓" ? "text-sage" : "text-tan-dark"}`}>
             {status}
           </span>
         )}

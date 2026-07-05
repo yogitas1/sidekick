@@ -47,7 +47,7 @@ export default function MatchActions({
           Cancel
         </button>
       </div>
-      {error && <p className="mt-2 text-sm text-coral-dark">{error}</p>}
+      {error && <p className="mt-2 text-sm text-tan-dark">{error}</p>}
     </div>
   );
 }

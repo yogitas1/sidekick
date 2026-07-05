@@ -83,7 +83,7 @@ export default async function DashboardPage() {
         <h1 className="text-3xl font-bold">Hey {profile.first_name} 👋</h1>
 
         {profile.is_suspended && (
-          <div className="mt-4 rounded-2xl border border-coral/30 bg-coral/10 p-4 text-sm text-coral-dark">
+          <div className="mt-4 rounded-2xl border border-tan/30 bg-tan/10 p-4 text-sm text-tan-dark">
             Your account is paused after 3 no-show reports. Reach out to support to appeal.
           </div>
         )}
@@ -100,7 +100,7 @@ export default async function DashboardPage() {
             {needsFeedback.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm"
+                className="flex items-center justify-between rounded-2xl border border-cream bg-white p-4 shadow-sm"
               >
                 <div>
                   <p className="font-semibold">How was {m.activity.title}?</p>
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
                 </div>
                 <Link
                   href={`/feedback/${m.id}`}
-                  className="rounded-full bg-coral px-5 py-2 text-sm font-semibold text-white hover:bg-coral-dark"
+                  className="rounded-full bg-tan px-5 py-2 text-sm font-semibold text-white hover:bg-tan-dark"
                 >
                   Leave feedback
                 </Link>
@@ -124,8 +124,8 @@ export default async function DashboardPage() {
             Upcoming meetup
           </h2>
           {active && activePartner ? (
-            <div className="mt-3 overflow-hidden rounded-3xl bg-white shadow-sm">
-              <div className="bg-coral/90 px-6 py-3 text-sm font-medium text-white">
+            <div className="mt-3 overflow-hidden rounded-3xl border border-cream bg-white shadow-sm">
+              <div className="bg-tan/90 px-6 py-3 text-sm font-medium text-white">
                 {active.status === "proposed"
                   ? iConfirmed
                     ? "Waiting for your match to confirm…"
@@ -140,7 +140,7 @@ export default async function DashboardPage() {
                       {active.activity.venue} ·{" "}
                       {BUDGET_LABELS[active.activity.cost_level - 1]}
                     </p>
-                    <p className="mt-1 font-medium text-coral-dark">
+                    <p className="mt-1 font-medium text-tan-dark">
                       {formatTime(active.meetup_time)}
                     </p>
                     <p className="mt-3 max-w-md text-sm text-ink/60">
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
                       <p className="text-sm text-ink/50">
                         🔒 Chat opens {formatTime(window_.opensAt.toISOString())} (24h before
                         you meet).{" "}
-                        <Link href={`/match/${active.id}`} className="text-coral hover:underline">
+                        <Link href={`/match/${active.id}`} className="text-tan hover:underline">
                           View details
                         </Link>
                       </p>
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="mt-3 rounded-3xl bg-white p-10 text-center shadow-sm">
+            <div className="mt-3 rounded-3xl border border-cream bg-white p-10 text-center shadow-sm">
               <p className="text-lg font-medium">No meetup on the calendar yet.</p>
               <p className="mx-auto mt-1 max-w-sm text-sm text-ink/60">
                 We&apos;ll pair you with someone compatible and a plan you&apos;ll both love.
@@ -210,7 +210,7 @@ export default async function DashboardPage() {
               {past.map((m) => (
                 <div
                   key={m.id}
-                  className="flex items-center justify-between rounded-2xl bg-white px-5 py-3 text-sm shadow-sm"
+                  className="flex items-center justify-between rounded-2xl border border-cream bg-white px-5 py-3 text-sm shadow-sm"
                 >
                   <div>
                     <span className="font-semibold">{m.activity.title}</span>
@@ -226,7 +226,7 @@ export default async function DashboardPage() {
                         : m.status === "cancelled"
                           ? "bg-ink/5 text-ink/50"
                           : m.status === "no_show"
-                            ? "bg-coral/10 text-coral-dark"
+                            ? "bg-tan/10 text-tan-dark"
                             : "bg-butter/30 text-ink/70"
                     }`}
                   >

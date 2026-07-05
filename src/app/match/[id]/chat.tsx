@@ -75,7 +75,7 @@ export default function Chat({
 
   if (!window_.isOpen) {
     return (
-      <div className="rounded-3xl bg-white p-8 text-center shadow-sm">
+      <div className="rounded-3xl border border-cream bg-white p-8 text-center shadow-sm">
         {window_.isPast ? (
           <p className="text-sm text-ink/60">💬 This chat has closed (2h after the meetup).</p>
         ) : (
@@ -98,7 +98,7 @@ export default function Chat({
   }
 
   return (
-    <div className="flex h-[28rem] flex-col rounded-3xl bg-white shadow-sm">
+    <div className="flex h-[28rem] flex-col rounded-3xl border border-cream bg-white shadow-sm">
       <div className="border-b border-ink/5 px-5 py-3 text-sm font-semibold">
         Chat with {partnerName}
         {partnerIsDemo && (
@@ -118,7 +118,7 @@ export default function Chat({
             key={m.id}
             className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
               m.sender_id === userId
-                ? "ml-auto rounded-br-sm bg-coral text-white"
+                ? "ml-auto rounded-br-sm bg-tan text-white"
                 : "rounded-bl-sm bg-cream"
             }`}
           >
@@ -132,17 +132,17 @@ export default function Chat({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Type a message…"
-          className="flex-1 rounded-full border border-ink/10 px-4 py-2 text-sm outline-none focus:border-coral"
+          className="flex-1 rounded-full border border-ink/10 px-4 py-2 text-sm outline-none focus:border-tan"
         />
         <button
           type="submit"
           disabled={sending || !draft.trim()}
-          className="rounded-full bg-coral px-5 py-2 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50"
+          className="rounded-full bg-tan px-5 py-2 text-sm font-semibold text-white hover:bg-tan-dark disabled:opacity-50"
         >
           Send
         </button>
       </form>
-      {error && <p className="px-5 pb-3 text-xs text-coral-dark">{error}</p>}
+      {error && <p className="px-5 pb-3 text-xs text-tan-dark">{error}</p>}
     </div>
   );
 }

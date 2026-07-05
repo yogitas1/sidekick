@@ -22,7 +22,7 @@ export default function LandingPage() {
   return (
     <main className="flex-1">
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-        <span className="text-xl font-bold tracking-tight text-coral">Sidekick</span>
+        <span className="text-xl font-bold tracking-tight text-tan">Sidekick</span>
         <div className="flex items-center gap-3">
           <Link
             href="/login"
@@ -32,7 +32,7 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/signup"
-            className="rounded-full bg-coral px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-coral-dark"
+            className="rounded-full bg-tan px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-tan-dark"
           >
             Join free
           </Link>
@@ -46,7 +46,7 @@ export default function LandingPage() {
         <h1 className="text-5xl font-bold leading-tight tracking-tight sm:text-6xl">
           Make a friend.
           <br />
-          <span className="text-coral">Make it a plan.</span>
+          <span className="text-tan">Make it a plan.</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-ink/70">
           Friend apps give you endless chats that go nowhere. Sidekick matches you with a
@@ -55,7 +55,7 @@ export default function LandingPage() {
         </p>
         <Link
           href="/signup"
-          className="mt-8 inline-block rounded-full bg-coral px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-coral/25 transition hover:bg-coral-dark"
+          className="mt-8 inline-block rounded-full bg-tan px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-tan/25 transition hover:bg-tan-dark"
         >
           Find my first meetup →
         </Link>
@@ -63,7 +63,7 @@ export default function LandingPage() {
 
       <section className="mx-auto grid max-w-5xl gap-6 px-6 py-12 sm:grid-cols-3">
         {steps.map((s) => (
-          <div key={s.title} className="rounded-3xl bg-white p-7 shadow-sm">
+          <div key={s.title} className="rounded-3xl border border-cream bg-white p-7 shadow-sm">
             <div className="text-3xl">{s.emoji}</div>
             <h3 className="mt-3 text-lg font-semibold">{s.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink/70">{s.text}</p>

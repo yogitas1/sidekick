@@ -140,7 +140,7 @@ export default function OnboardingWizard({
         </div>
         <div className="mt-2 h-2 rounded-full bg-ink/10">
           <div
-            className="h-2 rounded-full bg-coral transition-all"
+            className="h-2 rounded-full bg-tan transition-all"
             style={{ width: `${((step + 1) / STEP_TITLES.length) * 100}%` }}
           />
         </div>
@@ -156,7 +156,7 @@ export default function OnboardingWizard({
             placeholder="First name"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-coral"
+            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-tan"
           />
           <input
             type="number"
@@ -165,7 +165,7 @@ export default function OnboardingWizard({
             max={120}
             value={age}
             onChange={(e) => setAge(e.target.value === "" ? "" : Number(e.target.value))}
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-coral"
+            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-tan"
           />
           <div className="flex flex-wrap gap-2">
             {[
@@ -180,8 +180,8 @@ export default function OnboardingWizard({
                 onClick={() => setGender(value)}
                 className={`rounded-full border px-5 py-2.5 text-sm font-medium transition ${
                   gender === value
-                    ? "border-coral bg-coral text-white"
-                    : "border-ink/15 bg-white hover:border-coral/50"
+                    ? "border-tan bg-tan text-white"
+                    : "border-ink/15 bg-white hover:border-tan/50"
                 }`}
               >
                 {label}
@@ -204,8 +204,8 @@ export default function OnboardingWizard({
                   onClick={() => setBudget(i + 1)}
                   className={`flex-1 rounded-2xl border px-4 py-4 text-lg font-semibold transition ${
                     budget === i + 1
-                      ? "border-coral bg-coral text-white"
-                      : "border-ink/15 bg-white hover:border-coral/50"
+                      ? "border-tan bg-tan text-white"
+                      : "border-ink/15 bg-white hover:border-tan/50"
                   }`}
                 >
                   {label}
@@ -223,7 +223,7 @@ export default function OnboardingWizard({
             </p>
             <div className="mt-4 space-y-4">
               {QUIZ.map((item, i) => (
-                <div key={item.q} className="rounded-2xl bg-white p-4 shadow-sm">
+                <div key={item.q} className="rounded-2xl border border-cream bg-white p-4 shadow-sm">
                   <p className="text-sm font-medium">{item.q}</p>
                   <div className="mt-2 flex gap-2">
                     {[item.a, item.b].map((opt, j) => (
@@ -239,8 +239,8 @@ export default function OnboardingWizard({
                         }
                         className={`flex-1 rounded-xl border px-3 py-2 text-sm transition ${
                           quiz[i] === j
-                            ? "border-coral bg-coral/10 font-medium text-coral-dark"
-                            : "border-ink/10 hover:border-coral/40"
+                            ? "border-tan bg-tan/10 font-medium text-tan-dark"
+                            : "border-ink/10 hover:border-tan/40"
                         }`}
                       >
                         {opt.label}
@@ -252,7 +252,7 @@ export default function OnboardingWizard({
             </div>
             {personalityType && (
               <p className="mt-3 text-sm text-ink/60">
-                Your vibe: <strong className="text-coral">{personalityType}</strong>
+                Your vibe: <strong className="text-tan">{personalityType}</strong>
               </p>
             )}
           </div>
@@ -264,7 +264,7 @@ export default function OnboardingWizard({
           <h1 className="text-3xl font-bold">Pick {REQUIRED_PICKS} things you&apos;d actually do</h1>
           <p className="mt-1 text-ink/60">
             From food crawls to skydiving — your picks power the matching.{" "}
-            <strong className={picked.length === REQUIRED_PICKS ? "text-sage" : "text-coral"}>
+            <strong className={picked.length === REQUIRED_PICKS ? "text-sage" : "text-tan"}>
               {picked.length}/{REQUIRED_PICKS} picked
             </strong>
           </p>
@@ -304,8 +304,8 @@ export default function OnboardingWizard({
                   onClick={() => togglePick(a.id)}
                   className={`rounded-2xl border p-4 text-left transition ${
                     isPicked
-                      ? "border-coral bg-coral/5 shadow-sm"
-                      : "border-ink/10 bg-white hover:border-coral/40"
+                      ? "border-tan bg-tan/5 shadow-sm"
+                      : "border-ink/10 bg-white hover:border-tan/40"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -366,8 +366,8 @@ export default function OnboardingWizard({
                   onClick={() => setGenderPref(value)}
                   className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                     genderPref === value
-                      ? "border-coral bg-coral text-white"
-                      : "border-ink/15 bg-white hover:border-coral/50"
+                      ? "border-tan bg-tan text-white"
+                      : "border-ink/15 bg-white hover:border-tan/50"
                   }`}
                 >
                   {label}
@@ -385,7 +385,7 @@ export default function OnboardingWizard({
               max={50}
               value={distance}
               onChange={(e) => setDistance(Number(e.target.value))}
-              className="mt-2 w-full accent-coral"
+              className="mt-2 w-full accent-tan"
             />
           </div>
           <div>
@@ -404,8 +404,8 @@ export default function OnboardingWizard({
                   onClick={() => setNotifPref(value)}
                   className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                     notifPref === value
-                      ? "border-coral bg-coral text-white"
-                      : "border-ink/15 bg-white hover:border-coral/50"
+                      ? "border-tan bg-tan text-white"
+                      : "border-ink/15 bg-white hover:border-tan/50"
                   }`}
                 >
                   {label}
@@ -426,7 +426,7 @@ export default function OnboardingWizard({
               value={zipcode}
               maxLength={5}
               onChange={(e) => setZipcode(e.target.value.replace(/\D/g, ""))}
-              className="mt-2 w-40 rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-coral"
+              className="mt-2 w-40 rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-tan"
             />
           </div>
           <div>
@@ -440,7 +440,7 @@ export default function OnboardingWizard({
         </section>
       )}
 
-      {error && <p className="mt-4 text-sm text-coral-dark">{error}</p>}
+      {error && <p className="mt-4 text-sm text-tan-dark">{error}</p>}
 
       <div className="mt-10 flex items-center justify-between">
         <button
@@ -457,7 +457,7 @@ export default function OnboardingWizard({
             type="button"
             disabled={!stepValid}
             onClick={() => setStep((s) => s + 1)}
-            className="rounded-full bg-coral px-7 py-3 font-semibold text-white hover:bg-coral-dark disabled:opacity-40"
+            className="rounded-full bg-tan px-7 py-3 font-semibold text-white hover:bg-tan-dark disabled:opacity-40"
           >
             Continue →
           </button>
@@ -466,7 +466,7 @@ export default function OnboardingWizard({
             type="button"
             disabled={!stepValid || saving}
             onClick={finish}
-            className="rounded-full bg-coral px-7 py-3 font-semibold text-white hover:bg-coral-dark disabled:opacity-40"
+            className="rounded-full bg-tan px-7 py-3 font-semibold text-white hover:bg-tan-dark disabled:opacity-40"
           >
             {saving ? "Saving…" : "Finish & find friends 🎉"}
           </button>

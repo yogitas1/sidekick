@@ -30,7 +30,7 @@ export default function LoginPage() {
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="w-full max-w-sm">
-        <Link href="/" className="text-xl font-bold text-coral">
+        <Link href="/" className="text-xl font-bold text-tan">
           Sidekick
         </Link>
         <h1 className="mt-6 text-3xl font-bold">Welcome back</h1>
@@ -43,7 +43,7 @@ export default function LoginPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-coral"
+            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-tan"
           />
           <input
             type="password"
@@ -51,13 +51,13 @@ export default function LoginPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-coral"
+            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-tan"
           />
-          {error && <p className="text-sm text-coral-dark">{error}</p>}
+          {error && <p className="text-sm text-tan-dark">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-coral py-3 font-semibold text-white hover:bg-coral-dark disabled:opacity-60"
+            className="w-full rounded-2xl bg-tan py-3 font-semibold text-white hover:bg-tan-dark disabled:opacity-60"
           >
             {loading ? "Logging in…" : "Log in"}
           </button>
@@ -65,7 +65,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-sm text-ink/60">
           New here?{" "}
-          <Link href="/signup" className="font-medium text-coral hover:underline">
+          <Link href="/signup" className="font-medium text-tan hover:underline">
             Create an account
           </Link>
         </p>

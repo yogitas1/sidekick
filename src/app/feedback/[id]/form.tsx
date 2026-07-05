@@ -50,8 +50,8 @@ export default function FeedbackForm({
               onClick={() => setShowedUp(value as boolean)}
               className={`rounded-full border px-5 py-2.5 text-sm font-medium transition ${
                 showedUp === value
-                  ? "border-coral bg-coral text-white"
-                  : "border-ink/15 bg-white hover:border-coral/50"
+                  ? "border-tan bg-tan text-white"
+                  : "border-ink/15 bg-white hover:border-tan/50"
               }`}
             >
               {label as string}
@@ -96,8 +96,8 @@ export default function FeedbackForm({
                   onClick={() => setWouldMeetAgain(value as boolean)}
                   className={`rounded-full border px-5 py-2.5 text-sm font-medium transition ${
                     wouldMeetAgain === value
-                      ? "border-coral bg-coral text-white"
-                      : "border-ink/15 bg-white hover:border-coral/50"
+                      ? "border-tan bg-tan text-white"
+                      : "border-ink/15 bg-white hover:border-tan/50"
                   }`}
                 >
                   {label as string}
@@ -117,16 +117,16 @@ export default function FeedbackForm({
           onChange={(e) => setComments(e.target.value)}
           rows={3}
           placeholder="What worked, what didn't…"
-          className="mt-2 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none focus:border-coral"
+          className="mt-2 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none focus:border-tan"
         />
       </div>
 
-      {error && <p className="text-sm text-coral-dark">{error}</p>}
+      {error && <p className="text-sm text-tan-dark">{error}</p>}
 
       <button
         type="submit"
         disabled={showedUp === null || saving}
-        className="w-full rounded-2xl bg-coral py-3 font-semibold text-white hover:bg-coral-dark disabled:opacity-40"
+        className="w-full rounded-2xl bg-tan py-3 font-semibold text-white hover:bg-tan-dark disabled:opacity-40"
       >
         {saving ? "Submitting…" : "Submit feedback"}
       </button>

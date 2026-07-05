@@ -58,14 +58,14 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
           ← Back to dashboard
         </Link>
 
-        <div className="mt-4 rounded-3xl bg-white p-6 shadow-sm">
+        <div className="mt-4 rounded-3xl border border-cream bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">{match.activity.title}</h1>
               <p className="mt-1 text-ink/70">
                 {match.activity.venue} · {BUDGET_LABELS[match.activity.cost_level - 1]}
               </p>
-              <p className="mt-1 font-medium text-coral-dark">{formatTime(match.meetup_time)}</p>
+              <p className="mt-1 font-medium text-tan-dark">{formatTime(match.meetup_time)}</p>
             </div>
             {partner && (
               <div className="rounded-2xl bg-cream px-4 py-3 text-center">
@@ -82,7 +82,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 
         <div className="mt-6">
           {match.status !== "confirmed" && !window_.isPast ? (
-            <div className="rounded-3xl bg-white p-8 text-center text-sm text-ink/60 shadow-sm">
+            <div className="rounded-3xl border border-cream bg-white p-8 text-center text-sm text-ink/60 shadow-sm">
               💬 Chat unlocks once you&apos;ve both confirmed the meetup.
             </div>
           ) : (

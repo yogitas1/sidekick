@@ -27,7 +27,7 @@ export default function FindMatchButton() {
       <button
         onClick={handleClick}
         disabled={loading}
-        className="rounded-full bg-coral px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-coral/25 transition hover:bg-coral-dark disabled:opacity-60"
+        className="rounded-full bg-tan px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-tan/25 transition hover:bg-tan-dark disabled:opacity-60"
       >
         {loading ? "Matching…" : "✨ Find my match"}
       </button>

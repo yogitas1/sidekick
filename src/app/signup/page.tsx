@@ -42,7 +42,7 @@ export default function SignupPage() {
           <h1 className="mt-4 text-2xl font-bold">Check your email</h1>
           <p className="mt-2 text-ink/60">
             We sent a confirmation link to <strong>{email}</strong>. Click it, then{" "}
-            <Link href="/login" className="text-coral hover:underline">
+            <Link href="/login" className="text-tan hover:underline">
               log in
             </Link>
             .
@@ -55,7 +55,7 @@ export default function SignupPage() {
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="w-full max-w-sm">
-        <Link href="/" className="text-xl font-bold text-coral">
+        <Link href="/" className="text-xl font-bold text-tan">
           Sidekick
         </Link>
         <h1 className="mt-6 text-3xl font-bold">Create your account</h1>
@@ -68,7 +68,7 @@ export default function SignupPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-coral"
+            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-tan"
           />
           <input
             type="password"
@@ -77,13 +77,13 @@ export default function SignupPage() {
             placeholder="Password (8+ characters)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-coral"
+            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 outline-none focus:border-tan"
           />
-          {error && <p className="text-sm text-coral-dark">{error}</p>}
+          {error && <p className="text-sm text-tan-dark">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-coral py-3 font-semibold text-white hover:bg-coral-dark disabled:opacity-60"
+            className="w-full rounded-2xl bg-tan py-3 font-semibold text-white hover:bg-tan-dark disabled:opacity-60"
           >
             {loading ? "Creating…" : "Sign up"}
           </button>
@@ -91,7 +91,7 @@ export default function SignupPage() {
 
         <p className="mt-6 text-sm text-ink/60">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-coral hover:underline">
+          <Link href="/login" className="font-medium text-tan hover:underline">
             Log in
           </Link>
         </p>
