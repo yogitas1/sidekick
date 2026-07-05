@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sidekick (Community Builder prototype)
 
-## Getting Started
+**Meetup + Bumble BFF in one.** Users get matched with a compatible person *and* a concrete
+activity they both want to do, at a time they're both free — so the meetup actually happens.
 
-First, run the development server:
+Working name: **Sidekick** (placeholder — rename in `src/app/layout.tsx` and the page headers).
+
+## How it works
+
+1. **Onboard** — age/gender, budget, optional 4-question personality quiz, pick **8 activities**
+   you'd genuinely do (these map to interest buckets), match preferences (age range, gender,
+   distance, notification timing), zipcode, and a weekly availability grid.
+2. **Match** — the `find_match` Postgres function scores candidates by shared interest buckets,
+   availability overlap, budget compatibility, personality, and rematch priority; filters by
+   mutual age/gender preferences and zipcode distance; then proposes a specific activity + time.
+3. **Confirm** — both sides confirm ("demo users" auto-confirm so you can test solo).
+4. **Chat** — opens 24 hours before the meetup, closes 2 hours after. Enforced by RLS, not just UI.
+5. **Feedback** — post-meetup form. A no-show report adds a strike; **3 strikes suspends the
+   account**. Cancelling flags your match for a priority rematch.
+
+## Stack
+
+- **Next.js 16** (App Router, TypeScript, Tailwind v4) — pages in `src/app/`, server actions in
+  [src/lib/actions.ts](src/lib/actions.ts), route protection in [src/proxy.ts](src/proxy.ts)
+- **Supabase** — auth, Postgres with RLS, Realtime chat. All matching/lifecycle logic lives in
+  `security definer` functions ([supabase/schema.sql](supabase/schema.sql)) so the app never
+  needs a service-role key.
+
+## Running locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local` needs (see `.env.example`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The connected Supabase project is `community-builder` (`bwoulmnrlthohjroexzf`). To recreate the
+backend from scratch: run `supabase/schema.sql`, then `supabase/seed.sql`, then
+`supabase/seed-demo-users.sql` in the SQL editor of a fresh project.
 
-## Learn More
+### Testing tips
 
-To learn more about Next.js, take a look at the following resources:
+- Eight **demo users** (Maya, Alex, Sam, Priya, Jordan, Elena, Dev, Grace) are seeded with
+  varied interests/availability, so "Find my match" works with a single real account.
+  Demo users auto-confirm matches and are labeled in the UI; they don't reply in chat.
+- **Email confirmation** is ON by default. For friction-free signups while testing, turn off
+  *Confirm email* in Supabase Dashboard → Authentication → Sign In / Providers → Email.
+  (Recommended while testing: also enable *leaked password protection* on the same page.)
+- To see the chat window open without waiting, move a confirmed match's `meetup_time` to within
+  24h in the SQL editor.
+- `npm run dev`/`start` set `NODE_OPTIONS=--use-system-ca` (via cross-env) because antivirus
+  TLS interception on some Windows machines breaks Node's fetch to Supabase otherwise.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deliberate v1 scope cuts (v2 backlog)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Solo mode** event browser (aggregated events, no matching)
+- **Real event integrations** — Eventbrite's public search API is discontinued and Luma's API is
+  invite-only; Ticketmaster Discovery API is the most viable first integration. The
+  `activities.source` column is ready for these.
+- **Weekly automated matching** — `find_match` is on-demand via a dashboard button; schedule it
+  with pg_cron or a Vercel cron for the weekly cadence.
+- **Notifications** — preferences are stored (`preferences.notification_pref`) but nothing sends
+  email/push yet.
+- Group matching, calendar integration, "similar background" matching, interaction-level pairing.
