@@ -11,6 +11,21 @@ export async function signOut() {
   redirect("/");
 }
 
+/**
+ * zip_geo holds all ~33k US ZIP centroids, so an unknown zip is a typo,
+ * not a coverage gap. Rejecting it here keeps the distance filter honest —
+ * find_match skips distance entirely for zips it can't resolve.
+ */
+async function validateZipcode(zipcode: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("zip_geo")
+    .select("zipcode")
+    .eq("zipcode", zipcode)
+    .maybeSingle();
+  return data ? null : "We don't recognize that zipcode — double-check it?";
+}
+
 export interface OnboardingData {
   firstName: string;
   age: number;
@@ -33,6 +48,9 @@ export async function saveOnboarding(data: OnboardingData): Promise<{ error?: st
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not signed in" };
+
+  const zipError = await validateZipcode(data.zipcode);
+  if (zipError) return { error: zipError };
 
   const { error: profileError } = await supabase.from("profiles").upsert({
     user_id: user.id,
@@ -172,6 +190,9 @@ export async function updateSettings(data: SettingsData): Promise<{ error?: stri
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not signed in" };
+
+  const zipError = await validateZipcode(data.zipcode);
+  if (zipError) return { error: zipError };
 
   const { error: profileError } = await supabase
     .from("profiles")

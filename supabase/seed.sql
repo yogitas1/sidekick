@@ -1,4 +1,5 @@
 -- Curated SF catalog: interest buckets, activities, and zip centroids.
+-- Requires the http extension (see schema.sql / enable_http_extension migration).
 
 insert into public.interest_buckets (name, emoji) values
   ('Food & Drink', '🍜'),
@@ -10,20 +11,25 @@ insert into public.interest_buckets (name, emoji) values
   ('Games & Social', '🎲'),
   ('Learning & Ideas', '📚');
 
-insert into public.zip_geo (zipcode, lat, lng) values
-  ('94102', 37.7793, -122.4193), ('94103', 37.7726, -122.4099),
-  ('94107', 37.7621, -122.3971), ('94108', 37.7929, -122.4079),
-  ('94109', 37.7925, -122.4204), ('94110', 37.7485, -122.4156),
-  ('94112', 37.7195, -122.4411), ('94114', 37.7583, -122.4351),
-  ('94115', 37.7856, -122.4370), ('94116', 37.7441, -122.4863),
-  ('94117', 37.7692, -122.4449), ('94118', 37.7822, -122.4610),
-  ('94121', 37.7786, -122.4892), ('94122', 37.7593, -122.4836),
-  ('94123', 37.7999, -122.4342), ('94124', 37.7309, -122.3886),
-  ('94127', 37.7354, -122.4571), ('94131', 37.7451, -122.4383),
-  ('94132', 37.7211, -122.4754), ('94133', 37.8002, -122.4091),
-  ('94134', 37.7190, -122.4096), ('94158', 37.7690, -122.3891),
-  ('94607', 37.8078, -122.2852), ('94610', 37.8110, -122.2440),
-  ('94704', 37.8666, -122.2590), ('94014', 37.6879, -122.4702);
+-- Load all ~33k US ZIP centroids (Census 2013 ZCTA data, public domain) so
+-- the distance filter works nationwide. Fetched and parsed inside Postgres;
+-- app-side validateZipcode() treats any zip missing from this table as a typo.
+select extensions.http_set_curlopt('CURLOPT_TIMEOUT_MS', '60000');
+
+with resp as (
+  select (extensions.http_get('https://gist.githubusercontent.com/erichurst/7882666/raw')).content as body
+),
+lines as (
+  select regexp_split_to_table(body, E'\n') as line from resp
+)
+insert into public.zip_geo (zipcode, lat, lng)
+select
+  split_part(line, ',', 1),
+  trim(split_part(line, ',', 2))::double precision,
+  trim(split_part(line, ',', 3))::double precision
+from lines
+where line ~ '^\d{5},'
+on conflict (zipcode) do update set lat = excluded.lat, lng = excluded.lng;
 
 -- Anytime activities
 insert into public.activities (title, description, bucket_id, venue, zipcode, cost_level, is_scheduled_event) values

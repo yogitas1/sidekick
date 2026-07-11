@@ -1,6 +1,9 @@
 -- Community Builder — full database schema (snapshot of what's applied to the Supabase project)
 -- Apply in a fresh project with: psql or the Supabase SQL editor, then run seed.sql and seed-demo-users.sql
 
+-- http extension: used by seed.sql to load the full US ZIP centroid dataset in-database
+create extension if not exists http with schema extensions;
+
 create table public.interest_buckets (
   id serial primary key,
   name text not null unique,
