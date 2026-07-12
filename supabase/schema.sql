@@ -215,8 +215,153 @@ begin
 end;
 $$;
 
--- Core matching: best-scoring compatible user + a shared-interest activity that fits
--- both budgets + a mutually free time. Creates a 'proposed' match; returns its id.
+-- ---------------------------------------------------------------------------
+-- Matching: shared pieces used by both the on-demand button and the weekly batch
+-- ---------------------------------------------------------------------------
+
+-- Normalized, symmetric 0-1 score:
+--   0.40 interest-bucket overlap (Jaccard) + 0.25 shared availability (capped at 4 slots)
+-- + 0.20 budget closeness + 0.15 personality (unknown counts half)
+create or replace function public.compatibility(a uuid, b uuid)
+returns double precision
+language sql stable security definer set search_path = public
+as $$
+  with
+  ia as (select distinct bucket_id from user_interests where user_id = a),
+  ib as (select distinct bucket_id from user_interests where user_id = b),
+  shared_buckets as (select count(*) c from ia where bucket_id in (select bucket_id from ib)),
+  union_buckets as (select count(*) c from (select bucket_id from ia union select bucket_id from ib) u),
+  shared_slots as (
+    select count(*) c
+    from availability x
+    join availability y on y.user_id = b and y.day_of_week = x.day_of_week and y.time_block = x.time_block
+    where x.user_id = a
+  ),
+  pa as (select budget_level, personality_type from profiles where user_id = a),
+  pb as (select budget_level, personality_type from profiles where user_id = b)
+  select
+    0.40 * coalesce((select c from shared_buckets)::float / nullif((select c from union_buckets), 0), 0)
+  + 0.25 * least((select c from shared_slots), 4)::float / 4
+  + 0.20 * (1 - abs((select budget_level from pa) - (select budget_level from pb))::float / 3)
+  + 0.15 * case
+      when (select personality_type from pa) is null or (select personality_type from pb) is null then 0.5
+      when (select personality_type from pa) = (select personality_type from pb) then 1
+      else 0
+    end;
+$$;
+
+-- Mutual hard constraints: age ranges, gender prefs, distance, never matched
+-- before, and at least one shared interest bucket and availability slot.
+create or replace function public.passes_filters(a uuid, b uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select
+    exists (
+      select 1
+      from profiles pa
+      join preferences fa on fa.user_id = pa.user_id,
+           profiles pb
+      join preferences fb on fb.user_id = pb.user_id
+      where pa.user_id = a and pb.user_id = b
+        and pa.age between fb.age_min and fb.age_max
+        and pb.age between fa.age_min and fa.age_max
+        and (fa.gender_pref = 'any' or fa.gender_pref = pb.gender)
+        and (fb.gender_pref = 'any' or fb.gender_pref = pa.gender)
+        and coalesce(zip_distance_km(pa.zipcode, pb.zipcode) <= least(fa.max_distance_km, fb.max_distance_km), true)
+    )
+    and not exists (
+      select 1 from matches m
+      where (m.user_a = a and m.user_b = b) or (m.user_a = b and m.user_b = a)
+    )
+    and exists (
+      select 1 from user_interests x
+      where x.user_id = a
+        and x.bucket_id in (select bucket_id from user_interests y where y.user_id = b)
+    )
+    and exists (
+      select 1 from availability x
+      join availability y on y.user_id = b and y.day_of_week = x.day_of_week and y.time_block = x.time_block
+      where x.user_id = a
+    );
+$$;
+
+-- Picks an activity from a shared bucket that fits both budgets and a mutually
+-- free time, then creates the proposed match. Returns null if no activity fits.
+create or replace function public.create_match(a uuid, b uuid)
+returns uuid
+language plpgsql security definer set search_path = public
+as $$
+declare
+  chosen record;
+  slot record;
+  mt timestamptz;
+  new_match uuid;
+begin
+  select x.day_of_week, x.time_block, next_slot_time(x.day_of_week, x.time_block) as t
+  into slot
+  from availability x
+  join availability y on y.user_id = b and y.day_of_week = x.day_of_week and y.time_block = x.time_block
+  where x.user_id = a
+  order by t asc
+  limit 1;
+
+  if slot is null then
+    return null;
+  end if;
+
+  select act.id, act.event_time, act.is_scheduled_event
+  into chosen
+  from activities act
+  where act.bucket_id in (
+      select x.bucket_id from user_interests x
+      where x.user_id = a
+        and x.bucket_id in (select y.bucket_id from user_interests y where y.user_id = b)
+    )
+    and act.cost_level <= greatest(least((select budget_level from profiles where user_id = a),
+                                         (select budget_level from profiles where user_id = b)), 1)
+    and (
+      not act.is_scheduled_event
+      or (
+        act.event_time > now() + interval '24 hours'
+        -- scheduled events must land in a slot both users marked free
+        and exists (
+          select 1 from availability x
+          join availability y on y.user_id = b and y.day_of_week = x.day_of_week and y.time_block = x.time_block
+          where x.user_id = a
+            and x.day_of_week = extract(dow from act.event_time at time zone 'America/Los_Angeles')::int
+            and x.time_block = case
+              when extract(hour from act.event_time at time zone 'America/Los_Angeles') between 8 and 11 then 'morning'
+              when extract(hour from act.event_time at time zone 'America/Los_Angeles') between 12 and 16 then 'afternoon'
+              else 'evening'
+            end
+        )
+      )
+    )
+  order by
+    (exists (select 1 from user_interests ui where ui.activity_id = act.id and ui.user_id in (a, b))) desc,
+    act.is_scheduled_event desc,
+    random()
+  limit 1;
+
+  if chosen is null then
+    return null;
+  end if;
+
+  mt := case when chosen.is_scheduled_event then chosen.event_time else slot.t end;
+
+  insert into matches (user_a, user_b, activity_id, meetup_time)
+  values (a, b, chosen.id, mt)
+  returning id into new_match;
+
+  update profiles set needs_rematch = false where user_id in (a, b) and needs_rematch;
+
+  return new_match;
+end;
+$$;
+
+-- On-demand matching (the dashboard button), a thin composition of the shared
+-- pieces. Cancelled-on users (needs_rematch) get a 0.5 priority boost.
 create or replace function public.find_match()
 returns uuid
 language plpgsql security definer set search_path = public
@@ -224,22 +369,16 @@ as $$
 declare
   me uuid := auth.uid();
   my_p profiles%rowtype;
-  my_pref preferences%rowtype;
-  best record;
-  chosen_activity record;
-  slot record;
-  mt timestamptz;
-  new_match uuid;
+  best uuid;
 begin
   select * into my_p from profiles where user_id = me;
-  select * into my_pref from preferences where user_id = me;
-  if my_p is null or my_pref is null or not my_p.onboarding_complete then
+  if my_p is null or not my_p.onboarding_complete
+     or not exists (select 1 from preferences where user_id = me) then
     raise exception 'complete onboarding first';
   end if;
   if my_p.is_suspended then
     raise exception 'account suspended';
   end if;
-
   if exists (
     select 1 from matches
     where (user_a = me or user_b = me)
@@ -249,118 +388,79 @@ begin
     raise exception 'you already have an upcoming meetup';
   end if;
 
-  select c.user_id, c.first_name,
-    (
-      3 * (select count(distinct ui1.bucket_id) from user_interests ui1
-           where ui1.user_id = me
-             and ui1.bucket_id in (select ui2.bucket_id from user_interests ui2 where ui2.user_id = c.user_id))
-      + 2 * least(4, (select count(*) from availability a1
-                      join availability a2 on a2.user_id = c.user_id
-                        and a2.day_of_week = a1.day_of_week and a2.time_block = a1.time_block
-                      where a1.user_id = me))
-      + (3 - abs(my_p.budget_level - c.budget_level))
-      + case when my_p.personality_type is not null and my_p.personality_type = c.personality_type then 2 else 0 end
-      + case when c.needs_rematch then 5 else 0 end
-    ) as score
-  into best
+  select c.user_id into best
   from profiles c
-  join preferences cp on cp.user_id = c.user_id
   where c.user_id <> me
     and c.onboarding_complete
     and not c.is_suspended
-    and c.age between my_pref.age_min and my_pref.age_max
-    and my_p.age between cp.age_min and cp.age_max
-    and (my_pref.gender_pref = 'any' or my_pref.gender_pref = c.gender)
-    and (cp.gender_pref = 'any' or cp.gender_pref = my_p.gender)
-    and not exists (
-      select 1 from matches m
-      where (m.user_a = me and m.user_b = c.user_id) or (m.user_a = c.user_id and m.user_b = me)
-    )
     and not exists (
       select 1 from matches m
       where (m.user_a = c.user_id or m.user_b = c.user_id)
         and m.status in ('proposed','confirmed')
         and m.meetup_time > now()
     )
-    and coalesce(
-      zip_distance_km(my_p.zipcode, c.zipcode) <= least(my_pref.max_distance_km, cp.max_distance_km),
-      true
-    )
-    and exists (
-      select 1 from user_interests ui1
-      where ui1.user_id = me
-        and ui1.bucket_id in (select bucket_id from user_interests ui2 where ui2.user_id = c.user_id)
-    )
-    and exists (
-      select 1 from availability a1
-      join availability a2 on a2.user_id = c.user_id
-        and a2.day_of_week = a1.day_of_week and a2.time_block = a1.time_block
-      where a1.user_id = me
-    )
-  order by score desc, random()
+    and passes_filters(me, c.user_id)
+  order by
+    compatibility(me, c.user_id) + case when c.needs_rematch then 0.5 else 0 end desc,
+    random()
   limit 1;
 
   if best is null then
     return null;
   end if;
 
-  select a1.day_of_week, a1.time_block, next_slot_time(a1.day_of_week, a1.time_block) as t
-  into slot
-  from availability a1
-  join availability a2 on a2.user_id = best.user_id
-    and a2.day_of_week = a1.day_of_week and a2.time_block = a1.time_block
-  where a1.user_id = me
-  order by t asc
-  limit 1;
+  return create_match(me, best);
+end;
+$$;
 
-  select act.id, act.event_time, act.is_scheduled_event
-  into chosen_activity
-  from activities act
-  where act.bucket_id in (
-      select ui1.bucket_id from user_interests ui1
-      where ui1.user_id = me
-        and ui1.bucket_id in (select bucket_id from user_interests ui2 where ui2.user_id = best.user_id)
-    )
-    and act.cost_level <= greatest(least((select budget_level from profiles where user_id = me),
-                                         (select budget_level from profiles where user_id = best.user_id)), 1)
-    and (
-      not act.is_scheduled_event
-      or (
-        act.event_time > now() + interval '24 hours'
-        -- event must land in a slot both users marked free
-        and exists (
-          select 1 from availability a1
-          join availability a2 on a2.user_id = best.user_id
-            and a2.day_of_week = a1.day_of_week and a2.time_block = a1.time_block
-          where a1.user_id = me
-            and a1.day_of_week = extract(dow from act.event_time at time zone 'America/Los_Angeles')::int
-            and a1.time_block = case
-              when extract(hour from act.event_time at time zone 'America/Los_Angeles') between 8 and 11 then 'morning'
-              when extract(hour from act.event_time at time zone 'America/Los_Angeles') between 12 and 16 then 'afternoon'
-              else 'evening'
-            end
-        )
-      )
-    )
-  order by
-    (exists (select 1 from user_interests ui where ui.activity_id = act.id and ui.user_id in (me, best.user_id))) desc,
-    act.is_scheduled_event desc,
-    random()
-  limit 1;
+-- The weekly batch: greedy max-weight assignment over all eligible pairs.
+-- Runs as system (no auth.uid()); called by pg_cron, never by clients.
+create or replace function public.run_weekly_matching()
+returns int
+language plpgsql security definer set search_path = public
+as $$
+declare
+  paired int := 0;
+  r record;
+begin
+  -- everyone eligible and not already booked (idempotency guard: re-running
+  -- can never double-book, because booked users never enter the pool)
+  create temp table pool on commit drop as
+    select p.user_id, p.needs_rematch
+    from profiles p
+    where p.onboarding_complete
+      and not p.is_suspended
+      and exists (select 1 from preferences f where f.user_id = p.user_id)
+      and not exists (
+        select 1 from matches m
+        where (m.user_a = p.user_id or m.user_b = p.user_id)
+          and m.status in ('proposed','confirmed')
+          and m.meetup_time > now()
+      );
 
-  if chosen_activity is null then
-    return null;
-  end if;
+  -- score every eligible pair once (hard filters first keeps the O(n^2) cheap)
+  create temp table scored on commit drop as
+    select a.user_id as ua, b.user_id as ub,
+           compatibility(a.user_id, b.user_id)
+             + case when a.needs_rematch or b.needs_rematch then 0.5 else 0 end as score
+    from pool a
+    join pool b on a.user_id < b.user_id
+    where passes_filters(a.user_id, b.user_id);
 
-  mt := case when chosen_activity.is_scheduled_event then chosen_activity.event_time else slot.t end;
+  -- greedily take the best available pair, lock both out, repeat
+  for r in select * from scored order by score desc, random() loop
+    if exists (select 1 from pool where user_id = r.ua)
+       and exists (select 1 from pool where user_id = r.ub) then
+      -- create_match can return null (no activity fits this pair's budgets);
+      -- then both stay in the pool for their next-best pairings
+      if create_match(r.ua, r.ub) is not null then
+        delete from pool where user_id in (r.ua, r.ub);
+        paired := paired + 1;
+      end if;
+    end if;
+  end loop;
 
-  insert into matches (user_a, user_b, activity_id, meetup_time)
-  values (me, best.user_id, chosen_activity.id, mt)
-  returning id into new_match;
-
-  update profiles set needs_rematch = false where user_id in (me, best.user_id) and needs_rematch;
-
-  return new_match;
+  return paired;
 end;
 $$;
 
@@ -444,8 +544,24 @@ revoke execute on function public.cancel_match(uuid) from public, anon;
 revoke execute on function public.zip_distance_km(text, text) from public, anon, authenticated;
 revoke execute on function public.next_slot_time(int, text) from public, anon, authenticated;
 revoke execute on function public.apply_feedback() from public, anon, authenticated;
+revoke execute on function public.compatibility(uuid, uuid) from public, anon, authenticated;
+revoke execute on function public.passes_filters(uuid, uuid) from public, anon, authenticated;
+revoke execute on function public.create_match(uuid, uuid) from public, anon, authenticated;
+revoke execute on function public.run_weekly_matching() from public, anon, authenticated;
 
 grant execute on function public.match_partners() to authenticated;
 grant execute on function public.find_match() to authenticated;
 grant execute on function public.confirm_match(uuid) to authenticated;
 grant execute on function public.cancel_match(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Weekly matching schedule (pg_cron runs inside Postgres; times are UTC)
+-- ---------------------------------------------------------------------------
+create extension if not exists pg_cron;
+
+-- Mondays 17:00 UTC = 9am PST / 10am PDT
+select cron.schedule(
+  'weekly-matching',
+  '0 17 * * 1',
+  $cron$ select public.run_weekly_matching(); $cron$
+);

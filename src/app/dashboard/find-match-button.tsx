@@ -33,7 +33,7 @@ export default function FindMatchButton() {
       </button>
       {message && <p className="mt-3 text-sm text-ink/60">{message}</p>}
       <p className="mt-3 text-xs text-ink/40">
-        In the full version this runs automatically every week.
+        Matching also runs automatically every Monday morning.
       </p>
     </div>
   );
