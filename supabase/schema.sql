@@ -73,6 +73,7 @@ create table public.matches (
   a_confirmed boolean not null default false,
   b_confirmed boolean not null default false,
   cancelled_by uuid,
+  notified_at timestamptz,
   created_at timestamptz not null default now(),
   check (user_a <> user_b)
 );
@@ -564,4 +565,106 @@ select cron.schedule(
   'weekly-matching',
   '0 17 * * 1',
   $cron$ select public.run_weekly_matching(); $cron$
+);
+
+-- ---------------------------------------------------------------------------
+-- Match notifications via Resend (see migration match_notifications_resend)
+-- Requires two Vault secrets:
+--   resend_api_key  (required) - Resend API key
+--   resend_from     (optional) - verified sender, defaults to Resend's test sender
+-- Add them with:  select vault.create_secret('re_...', 'resend_api_key');
+-- ---------------------------------------------------------------------------
+create or replace function public.send_match_notifications()
+returns int
+language plpgsql security definer set search_path = public
+as $$
+declare
+  api_key text;
+  from_addr text;
+  m record;
+  r record;
+  resp extensions.http_response;
+  sent int := 0;
+begin
+  select decrypted_secret into api_key
+  from vault.decrypted_secrets where name = 'resend_api_key';
+
+  if api_key is null then
+    -- No key yet: leave notified_at null so nothing is lost; the sweep
+    -- picks these matches up as soon as the key is added to Vault.
+    raise notice 'resend_api_key not found in Vault - skipping notifications';
+    return 0;
+  end if;
+
+  select decrypted_secret into from_addr
+  from vault.decrypted_secrets where name = 'resend_from';
+  from_addr := coalesce(from_addr, 'Sidekick <onboarding@resend.dev>');
+
+  perform extensions.http_set_curlopt('CURLOPT_TIMEOUT_MS', '10000');
+
+  for m in
+    select mt.id, mt.user_a, mt.user_b, mt.meetup_time, a.title as activity, a.venue,
+           to_char(mt.meetup_time at time zone 'America/Los_Angeles',
+                   'FMDay, FMMonth FMDD "at" FMHH12:MI PM') as when_pt
+    from matches mt
+    join activities a on a.id = mt.activity_id
+    where mt.status = 'proposed'
+      and mt.notified_at is null
+      and mt.meetup_time > now()
+    order by mt.created_at
+  loop
+    -- one email per human participant (demo users have fake addresses)
+    for r in
+      select u.email, me.first_name, partner.first_name as partner_name
+      from (values (m.user_a, m.user_b), (m.user_b, m.user_a)) as pair(me_id, partner_id)
+      join profiles me on me.user_id = pair.me_id and not me.is_demo
+      join profiles partner on partner.user_id = pair.partner_id
+      join auth.users u on u.id = pair.me_id
+    loop
+      begin
+        select * into resp from extensions.http((
+          'POST',
+          'https://api.resend.com/emails',
+          array[extensions.http_header('Authorization', 'Bearer ' || api_key)],
+          'application/json',
+          jsonb_build_object(
+            'from', from_addr,
+            'to', jsonb_build_array(r.email),
+            'subject', '🎉 You have a match: ' || m.activity,
+            'html',
+              '<p>Hey ' || r.first_name || ',</p>'
+              || '<p>You''ve been matched with <strong>' || r.partner_name || '</strong> for '
+              || '<strong>' || m.activity || '</strong> (' || m.venue || ') on '
+              || '<strong>' || m.when_pt || '</strong>.</p>'
+              || '<p>Head to your dashboard to confirm — chat opens 24 hours before you meet.</p>'
+              || '<p><a href="https://community-builder-smoky.vercel.app/dashboard">Confirm your meetup</a></p>'
+          )::text
+        )::extensions.http_request);
+
+        if resp.status between 200 and 299 then
+          sent := sent + 1;
+        else
+          raise notice 'resend returned % for match % (%): %', resp.status, m.id, r.email, resp.content;
+        end if;
+      exception when others then
+        raise notice 'notification failed for match % (%): %', m.id, r.email, sqlerrm;
+      end;
+    end loop;
+
+    -- mark the match swept even if a send failed, so a bad address
+    -- can't wedge the queue into a retry storm
+    update matches set notified_at = now() where id = m.id;
+  end loop;
+
+  return sent;
+end;
+$$;
+
+revoke execute on function public.send_match_notifications() from public, anon, authenticated;
+
+-- Sweep every 5 minutes: covers both the Monday batch and on-demand matches
+select cron.schedule(
+  'match-notifications',
+  '*/5 * * * *',
+  $cron$ select public.send_match_notifications(); $cron$
 );
