@@ -20,6 +20,17 @@ export interface Activity {
   source: string;
 }
 
+/** A ready-made plan for an activity: where to meet, what to do first, where to go after. */
+export interface ActivityPrompt {
+  id: string;
+  activity_id: string;
+  meeting_point: string;
+  mission: string;
+  then_what: string;
+  plan_b: string;
+  duration_minutes: number;
+}
+
 export interface Profile {
   user_id: string;
   first_name: string;
@@ -54,6 +65,7 @@ export interface Match {
   user_a: string;
   user_b: string;
   activity_id: string;
+  prompt_id: string | null;
   meetup_time: string;
   status: "proposed" | "confirmed" | "completed" | "cancelled" | "no_show";
   a_confirmed: boolean;

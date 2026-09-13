@@ -13,9 +13,12 @@ Working name: **Sidekick** (placeholder — rename in `src/app/layout.tsx` and t
 2. **Match** — the `find_match` Postgres function scores candidates by shared interest buckets,
    availability overlap, budget compatibility, personality, and rematch priority; filters by
    mutual age/gender preferences and zipcode distance; then proposes a specific activity + time.
-3. **Confirm** — both sides confirm ("demo users" auto-confirm so you can test solo).
-4. **Chat** — opens 24 hours before the meetup, closes 2 hours after. Enforced by RLS, not just UI.
-5. **Feedback** — post-meetup form. A no-show report adds a strike; **3 strikes suspends the
+3. **A plan, not just a place** — every match also gets one of the activity's `activity_prompts`:
+   where exactly to meet, one concrete thing to do first, where to go after, and a plan B. The
+   point is that neither person has to decide anything in the first ten minutes.
+4. **Confirm** — both sides confirm ("demo users" auto-confirm so you can test solo).
+5. **Chat** — opens 24 hours before the meetup, closes 2 hours after. Enforced by RLS, not just UI.
+6. **Feedback** — post-meetup form. A no-show report adds a strike; **3 strikes suspends the
    account**. Cancelling flags your match for a priority rematch.
 
 ## Stack
@@ -42,7 +45,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 
 The connected Supabase project is `community-builder` (`bwoulmnrlthohjroexzf`). To recreate the
 backend from scratch: run `supabase/schema.sql`, then `supabase/seed.sql`, then
-`supabase/seed-demo-users.sql` in the SQL editor of a fresh project.
+`supabase/seed-sf-activities.sql`, then `supabase/seed-demo-users.sql` in the SQL editor of a
+fresh project.
+
+Against the **existing** project, run `supabase/migrations/add_activity_prompts.sql` first (the
+snapshot in `schema.sql` already includes it), then `supabase/seed-sf-activities.sql`. Both are
+idempotent and safe to re-run — and re-running the seed rolls recurring weekly events like Lindy
+in the Park forward to the next Sunday.
 
 ### Testing tips
 
@@ -67,4 +76,10 @@ backend from scratch: run `supabase/schema.sql`, then `supabase/seed.sql`, then
   with pg_cron or a Vercel cron for the weekly cadence.
 - **Notifications** — preferences are stored (`preferences.notification_pref`) but nothing sends
   email/push yet.
+- **Activity prompts are hand-written** for ~20 places (3 each) and the prices and free-day rules
+  in them were verified in September 2026, so they will drift. They're split from the place on
+  purpose: an LLM can regenerate prompts later without re-verifying locations.
+- **No exposure dial** — a meaningful share of people won't do anything performative in public
+  with a stranger, and every prompt currently assumes they will. A low-key variant per prompt,
+  plus a preference to select it, is the obvious next step.
 - Group matching, calendar integration, "similar background" matching, interaction-level pairing.
