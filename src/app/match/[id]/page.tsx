@@ -26,7 +26,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 
   const { data: match } = await supabase
     .from("matches")
-    .select("*, activity:activities(*)")
+    .select("*, activity:activities(*), prompt:activity_prompts(*)")
     .eq("id", id)
     .maybeSingle();
   if (!match) notFound();
@@ -79,6 +79,38 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
             Status: <span className="font-medium">{match.status}</span>
           </p>
         </div>
+
+        {match.prompt && (
+          <div className="mt-4 rounded-3xl border border-cream bg-white p-6 shadow-sm">
+            <h2 className="text-sm font-semibold tracking-wide text-ink/50 uppercase">The plan</h2>
+            <dl className="mt-4 space-y-4 text-sm">
+              <div>
+                <dt className="font-semibold">📍 Meet at</dt>
+                <dd className="mt-0.5 text-ink/70">{match.prompt.meeting_point}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold">✨ First thing</dt>
+                <dd className="mt-0.5 text-ink/70">{match.prompt.mission}</dd>
+              </div>
+              {match.prompt.then_what && (
+                <div>
+                  <dt className="font-semibold">➡️ Then</dt>
+                  <dd className="mt-0.5 text-ink/70">{match.prompt.then_what}</dd>
+                </div>
+              )}
+              {match.prompt.plan_b && (
+                <div>
+                  <dt className="font-semibold">🌧️ If that doesn&apos;t work</dt>
+                  <dd className="mt-0.5 text-ink/70">{match.prompt.plan_b}</dd>
+                </div>
+              )}
+            </dl>
+            <p className="mt-5 text-xs text-ink/40">
+              About {match.prompt.duration_minutes} minutes. It&apos;s a suggestion, not a
+              checklist — drop it as soon as you&apos;re talking.
+            </p>
+          </div>
+        )}
 
         <div className="mt-6">
           {match.status !== "confirmed" && !window_.isPast ? (

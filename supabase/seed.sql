@@ -1,5 +1,8 @@
 -- Curated SF catalog: interest buckets, activities, and zip centroids.
 -- Requires the http extension (see schema.sql / enable_http_extension migration).
+--
+-- Run seed-sf-activities.sql after this one: it adds the cheap-or-free SF places
+-- and the ready-made plans (activity_prompts) attached to them.
 
 insert into public.interest_buckets (name, emoji) values
   ('Food & Drink', '🍜'),

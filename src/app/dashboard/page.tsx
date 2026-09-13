@@ -4,7 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import AppHeader from "@/components/AppHeader";
 import FindMatchButton from "./find-match-button";
 import MatchActions from "./match-actions";
-import { BUDGET_LABELS, chatWindow, type Activity, type Match, type MatchPartner } from "@/lib/types";
+import {
+  BUDGET_LABELS,
+  chatWindow,
+  type Activity,
+  type ActivityPrompt,
+  type Match,
+  type MatchPartner,
+} from "@/lib/types";
 
 const GENDER_LABEL: Record<string, string> = {
   woman: "Woman",
@@ -40,11 +47,14 @@ export default async function DashboardPage() {
 
   const { data: matches } = await supabase
     .from("matches")
-    .select("*, activity:activities(*)")
+    .select("*, activity:activities(*), prompt:activity_prompts(*)")
     .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
     .order("meetup_time", { ascending: false });
 
-  const all = (matches ?? []) as (Match & { activity: Activity })[];
+  const all = (matches ?? []) as (Match & {
+    activity: Activity;
+    prompt: ActivityPrompt | null;
+  })[];
   // Dynamic server component: rendered per-request, so reading the clock is safe.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
@@ -146,6 +156,21 @@ export default async function DashboardPage() {
                     <p className="mt-3 max-w-md text-sm text-ink/60">
                       {active.activity.description}
                     </p>
+                    {active.prompt && (
+                      <div className="mt-4 max-w-md rounded-2xl bg-cream/60 p-4 text-sm">
+                        <p>
+                          <span className="font-semibold">📍 Meet at</span>{" "}
+                          {active.prompt.meeting_point}
+                        </p>
+                        <p className="mt-1 text-ink/70">{active.prompt.mission}</p>
+                        <Link
+                          href={`/match/${active.id}`}
+                          className="mt-2 inline-block text-xs font-medium text-tan hover:underline"
+                        >
+                          See the whole plan →
+                        </Link>
+                      </div>
+                    )}
                   </div>
                   <div className="rounded-2xl bg-cream px-5 py-4 text-center">
                     <div className="text-3xl">🙂</div>

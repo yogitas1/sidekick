@@ -24,6 +24,21 @@ create table public.activities (
   created_at timestamptz not null default now()
 );
 
+-- A ready-made plan for an activity: where to meet, the one thing to do first,
+-- and where to go after. Several per activity so a repeat visit isn't identical.
+create table public.activity_prompts (
+  id uuid primary key default gen_random_uuid(),
+  activity_id uuid not null references public.activities(id) on delete cascade,
+  meeting_point text not null,
+  mission text not null,
+  then_what text not null default '',
+  plan_b text not null default '',
+  duration_minutes int not null default 30 check (duration_minutes between 10 and 240),
+  created_at timestamptz not null default now()
+);
+
+create index activity_prompts_activity_idx on public.activity_prompts(activity_id);
+
 create table public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   first_name text not null default '',
@@ -68,6 +83,8 @@ create table public.matches (
   user_a uuid not null references public.profiles(user_id),
   user_b uuid not null references public.profiles(user_id),
   activity_id uuid not null references public.activities(id),
+  -- null for matches made before prompts existed, or for activities with none yet
+  prompt_id uuid references public.activity_prompts(id),
   meetup_time timestamptz not null,
   status text not null default 'proposed' check (status in ('proposed','confirmed','completed','cancelled','no_show')),
   a_confirmed boolean not null default false,
@@ -110,6 +127,7 @@ create table public.zip_geo (
 -- ---------------------------------------------------------------------------
 alter table public.interest_buckets enable row level security;
 alter table public.activities enable row level security;
+alter table public.activity_prompts enable row level security;
 alter table public.profiles enable row level security;
 alter table public.preferences enable row level security;
 alter table public.user_interests enable row level security;
@@ -121,6 +139,7 @@ alter table public.zip_geo enable row level security;
 
 create policy "buckets readable" on public.interest_buckets for select to authenticated using (true);
 create policy "activities readable" on public.activities for select to authenticated using (true);
+create policy "prompts readable" on public.activity_prompts for select to authenticated using (true);
 create policy "zip_geo readable" on public.zip_geo for select to authenticated using (true);
 
 create policy "own profile select" on public.profiles for select to authenticated using (auth.uid() = user_id);
@@ -288,7 +307,8 @@ as $$
 $$;
 
 -- Picks an activity from a shared bucket that fits both budgets and a mutually
--- free time, then creates the proposed match. Returns null if no activity fits.
+-- free time, attaches one of the activity's ready-made plans, then creates the
+-- proposed match. Returns null if no activity fits.
 create or replace function public.create_match(a uuid, b uuid)
 returns uuid
 language plpgsql security definer set search_path = public
@@ -298,6 +318,7 @@ declare
   slot record;
   mt timestamptz;
   new_match uuid;
+  prompt uuid;
 begin
   select x.day_of_week, x.time_block, next_slot_time(x.day_of_week, x.time_block) as t
   into slot
@@ -341,6 +362,7 @@ begin
     )
   order by
     (exists (select 1 from user_interests ui where ui.activity_id = act.id and ui.user_id in (a, b))) desc,
+    (exists (select 1 from activity_prompts p where p.activity_id = act.id)) desc,
     act.is_scheduled_event desc,
     random()
   limit 1;
@@ -351,8 +373,14 @@ begin
 
   mt := case when chosen.is_scheduled_event then chosen.event_time else slot.t end;
 
-  insert into matches (user_a, user_b, activity_id, meetup_time)
-  values (a, b, chosen.id, mt)
+  select p.id into prompt
+  from activity_prompts p
+  where p.activity_id = chosen.id
+  order by random()
+  limit 1;
+
+  insert into matches (user_a, user_b, activity_id, prompt_id, meetup_time)
+  values (a, b, chosen.id, prompt, mt)
   returning id into new_match;
 
   update profiles set needs_rematch = false where user_id in (a, b) and needs_rematch;
